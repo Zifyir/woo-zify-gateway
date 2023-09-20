@@ -1,5 +1,5 @@
 ﻿=== Gateway for zify on WooCommerce ===
-Contributors: mahdisarani, zify
+Contributors: mahdisarani, zify, hadihosseini
 Tags: woocommerce, payment, افزونه پرداخت, ووکامرس, ووکامرس فارسی, درگاه پرداخت, gateway, iran, persian, زیفای, zify
 Donate link: https://zify.ir
 Requires at least: 4.0.0

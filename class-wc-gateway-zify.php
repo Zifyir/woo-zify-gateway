@@ -19,8 +19,6 @@ if( class_exists('WC_Payment_Gateway') && !class_exists('WC_zify') ){
 			$this->init_form_fields();
 			$this->init_settings();
 
-			//$checkserver = $this->settings['ioserver'];
-			//if( $checkserver == 'yes')$this->baseurl  = 'https://api.payping.io/v2';
 			
 			$this->title = $this->settings['title'];
 			$this->description = $this->settings['description'];
@@ -59,14 +57,6 @@ if( class_exists('WC_Payment_Gateway') && !class_exists('WC_zify') ){
 						'default' => 'yes',
 						'desc_tip' => true,
 					),
-					/*'ioserver' => array(
-						'title' => __('سرور خارج', 'woocommerce'),
-						'type' => 'checkbox',
-						'label' => __('اتصال به سرور خارج', 'woocommerce'),
-						'description' => __('در صورت تیک خوردن، درگاه به سرور خارج از کشور متصل می‌شود.', 'woocommerce'),
-						'default' => 'no',
-						'desc_tip' => true,
-					), */
 					'title' => array(
 						'title' => __('عنوان درگاه', 'woocommerce'),
 						'type' => 'text',
@@ -126,8 +116,9 @@ if( class_exists('WC_Payment_Gateway') && !class_exists('WC_zify') ){
 			json_decode($string);
 			return (json_last_error() == JSON_ERROR_NONE);
 		}
-
+		
 		public function create_order($order_id){
+			
 			$zifypayCode = get_post_meta($order_id, '_zify_payCode', true);
 			if( $zifypayCode ){
 				wp_redirect( sprintf('%s/order/accept/%s', 'https://zify.ir/', $zifypayCode )) ;
@@ -137,6 +128,7 @@ if( class_exists('WC_Payment_Gateway') && !class_exists('WC_zify') ){
 			$woocommerce->session->order_id_zify = $order_id;
 			
 			$order = new WC_Order($order_id);
+			
 			$currency = $order->get_currency();
 			$currency = apply_filters('WC_zify_Currency', $currency, $order_id);
 			
@@ -199,9 +191,11 @@ if( class_exists('WC_Payment_Gateway') && !class_exists('WC_zify') ){
 				'address_2' => $billing_address['address_2']
 			);
 			$order_products = array();
+			
 			foreach ((array)$order_items as $product) {
 			    $price = ($product['subtotal'] / $product['quantity']);
 				$order_products[] = array(
+					'code'   => $product['product_id'],
 					'title'  => $product['name'],
 					'amount' =>  $this->zify_check_currency( $price, $currency ),
 					'sellQuantity' => $product['quantity'],
@@ -230,32 +224,31 @@ if( class_exists('WC_Payment_Gateway') && !class_exists('WC_zify') ){
 				'cookies' => array()
 			);
 
-			$api_url  = apply_filters( 'WC_zify_Gateway_Payment_api_url', $this->baseurl . '/order/v1/create', $order_id );
+			$api_url  = apply_filters( 'WC_zify_Gateway_Payment_api_url', $this->baseurl . '/order/v2/create', $order_id );
 
 			$api_args = apply_filters( 'WC_zify_Gateway_Payment_api_args', $args, $order_id );
 
 			$response = wp_remote_post($api_url, $api_args);
+			$body = json_decode(wp_remote_retrieve_body($response), JSON_UNESCAPED_UNICODE);
 
-			
 			if( is_wp_error($response) ){
 				$Message = $response->get_error_message();
 			}else{	
 				$code = wp_remote_retrieve_response_code( $response );
 				if( $code === 200){
-					if (isset($response["body"]) and $response["body"] != '') {
-						$code_pay = wp_remote_retrieve_body($response);
-						$code_pay =  json_decode($code_pay, true);
-						update_post_meta($order_id, '_zify_payCode', $code_pay["code"] );
-						$Note = 'ساخت موفق پرداخت، کد پرداخت: '.$code_pay["code"];
+					if (isset($body['data']) and $body['data'] != '') {
+						$order_code = $body['data']['order'];
+						update_post_meta($order_id, '_zify_orderCode', $order_code );
+						$Note = 'ساخت موفق پرداخت، کد پرداخت: '.$order_code;
 						$order->add_order_note($Note, 1, false);
-						wp_redirect(sprintf('%s/order/accept/%s', 'https://zify.ir', $code_pay["code"]));
+						wp_redirect(sprintf('%s/order/accept/%s', 'https://zify.ir', $order_code));
 						exit;
 					} else {
 						$Message = ' تراکنش ناموفق بود : ';
 						$Fault = $Message;
 					}
 				}else{
-					$Message = wp_remote_retrieve_body( $response );
+					$Message = $body['message'];
 					$Fault = $Message;
 				}
 			}
@@ -291,10 +284,6 @@ if( class_exists('WC_Payment_Gateway') && !class_exists('WC_zify') ){
 			
 			
 			if( isset( $order_id ) ){
-				/*if( $refid != null && $refid > 1000 ){
-					update_post_meta($order_id, 'woo_zify_refid', $refid );
-				}*/
-
 				// Get Order id
 				$order = new WC_Order($order_id);
 				// Get Currency Order
@@ -313,10 +302,10 @@ if( class_exists('WC_Payment_Gateway') && !class_exists('WC_zify') ){
 					// Add Filter for ANother Developer
 					//$refid = apply_filters('WC_zify_return_refid', $refid);
 					$Transaction_ID = $refid;
-					$pay_code = get_post_meta( $order_id, '_zify_payCode', true );
+					$order_code = get_post_meta( $order_id, '_zify_orderCode', true );
 					//Set Data 
 					$data = array(
-						'order' => $pay_code
+						'order' => $order_code
 					);
 					$args = array(
 						'body' => json_encode($data),
@@ -333,12 +322,11 @@ if( class_exists('WC_Payment_Gateway') && !class_exists('WC_zify') ){
 					);
 					
 				// Add Filter for use Another developer
-				$verify_api_url = apply_filters( 'WC_zify_Gateway_Payment_verify_api_url', $this->baseurl . '/order/v1/checkstatus', $order_id );
+				$verify_api_url = apply_filters( 'WC_zify_Gateway_Payment_verify_api_url', $this->baseurl . '/order/v2/verify', $order_id );
 				//response
 				$response = wp_remote_post($verify_api_url, $args);
 				
-				$body = wp_remote_retrieve_body( $response );
-				$rbody = json_decode( $body, true );
+				$body = json_decode( wp_remote_retrieve_body( $response ), true );
 				
 				if( is_wp_error($response) ){
 					$Status = 'failed';
@@ -346,52 +334,22 @@ if( class_exists('WC_Payment_Gateway') && !class_exists('WC_zify') ){
 					$Message = 'خطا در ارتباط به زیفای : شرح خطا '.$response->get_error_message();
 				}else{
 					$code = wp_remote_retrieve_response_code( $response );
-					$txtmsg = $this->status_message( $code );
 					
-					if ( $code === 200 && $rbody['code'] == 'success') {
+					if ( $code === 200 && isset($body['data'])) {
 						$Status = 'success';
-						$Message = $rbody['message'];
-						$Transaction_ID = $rbody['message'];
-					} else if ($code === 202 && $rbody['code'] == 'pending') {
-						$Status = 'failed';
-						$Message = $rbody['message'];
-						$Fault = 'پرداخت ناموفق بود.';
+						$card_number = '-';
+						if ( isset($card_number)) {
+							$card_number = $body['data']['card_number'];
+						}
+						$Message = 'پرداخت با موفقیت انجام شد. <br>شماره کارت: <b dir="ltr">'.$card_number.'</b>';
+						$Transaction_ID = $body['data']['refid'];
 					} else {
 						$Status = 'failed';
-						$Message = $rbody['message'];
-						$Fault = 'خطایی رخ داده است، با مدیریت سایت تماس بگیرید.';
+						$Message = $body['message'];
+						$Fault = 'پرداخت ناموفق بود.';
 					}
-					
-					/*if( $code === 200 ){
-						if( isset( $refid ) and $refid != '' ){
-							$Status = 'success';
-							$Message = $txtmsg.'<br>شماره کارت: <b dir="ltr">'.$cardNumber.'</b>';
-						}else{
-							$Status = 'failed';
-							$Message = 'متاسفانه سامانه قادر به دریافت کد پیگیری نمی باشد! نتیجه درخواست : ' . $body .'<br /> شماره خطا: '.$ERR_ID;
-							$Fault = 'خطای دریافت کد پیگیری!';
-						}
-					}elseif( $code == 400){
-						if( array_key_exists('15', $rbody) ){
-							$Status = 'completed';
-							$Message = $txtmsg.'<br>شماره کارت: <b dir="ltr">'.$cardNumber.'</b>';
-						}elseif( array_key_exists( '1', $rbody) ){
-							$Status = 'failed';
-							$Message = "کاربر در صفحه بانک از پرداخت انصراف داده است.<br> شماره خطا: $ERR_ID";
-							$Fault = 'تراكنش توسط شما لغو شد.';
-						}else{
-							$Status = 'failed';
-							$Message = $txtmsg."<br> شماره خطا: $ERR_ID";
-							$Fault = 'خطایی رخ داده است، با مدیریت سایت تماس بگیرید.';
-						}
-					}else{
-						$Status = 'failed';
-						$Message = $txtmsg.'<br> شماره خطا: '.$ERR_ID;
-						$Fault = 'خطای نامشخص در تایید پرداخت!';
-					}*/
-
 				}
-				//var_dump($Transaction_ID); dd();
+				
 					if( isset( $Transaction_ID ) && $Transaction_ID != 0){
 						update_post_meta($order_id, '_transaction_id', $Transaction_ID );
 						if( $Status == 'success' ){
@@ -422,6 +380,7 @@ if( class_exists('WC_Payment_Gateway') && !class_exists('WC_zify') ){
 							exit;
 						}
 					}else{
+						$Notice = $Message;
 						wc_add_notice($Fault, 'error');
 						$order->add_order_note( $Notice, 0, false);
 						update_post_meta($order_id, '_transaction_id', 1 );
