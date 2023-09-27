@@ -4,7 +4,7 @@ if(!defined('ABSPATH'))exit;
 if( class_exists('WC_Payment_Gateway') && !class_exists('WC_zify') ){
 	class WC_zify extends WC_Payment_Gateway{
 	    
-        private $baseurl = 'https://zify.payping.dev/api';
+        private $baseurl = 'https://zify.ir/api';
         private $zifyToken;
         private $success_massage;
         private $failed_massage;
