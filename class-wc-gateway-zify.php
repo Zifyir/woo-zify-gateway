@@ -4,7 +4,7 @@ if(!defined('ABSPATH'))exit;
 if( class_exists('WC_Payment_Gateway') && !class_exists('WC_zify') ){
 	class WC_zify extends WC_Payment_Gateway{
 	    
-        private $baseurl = 'https://zify.ir/api';
+        private $baseurl = 'https://zify.payping.dev/api';
         private $zifyToken;
         private $success_massage;
         private $failed_massage;
@@ -19,6 +19,8 @@ if( class_exists('WC_Payment_Gateway') && !class_exists('WC_zify') ){
 			$this->init_form_fields();
 			$this->init_settings();
 
+			//$checkserver = $this->settings['ioserver'];
+			//if( $checkserver == 'yes')$this->baseurl  = 'https://api.payping.io/v2';
 			
 			$this->title = $this->settings['title'];
 			$this->description = $this->settings['description'];
@@ -57,6 +59,14 @@ if( class_exists('WC_Payment_Gateway') && !class_exists('WC_zify') ){
 						'default' => 'yes',
 						'desc_tip' => true,
 					),
+					/*'ioserver' => array(
+						'title' => __('سرور خارج', 'woocommerce'),
+						'type' => 'checkbox',
+						'label' => __('اتصال به سرور خارج', 'woocommerce'),
+						'description' => __('در صورت تیک خوردن، درگاه به سرور خارج از کشور متصل می‌شود.', 'woocommerce'),
+						'default' => 'no',
+						'desc_tip' => true,
+					), */
 					'title' => array(
 						'title' => __('عنوان درگاه', 'woocommerce'),
 						'type' => 'text',
@@ -182,6 +192,7 @@ if( class_exists('WC_Payment_Gateway') && !class_exists('WC_zify') ){
 				$payerIdentity = $Email;
 			
 			$billing_address = $order->get_address('billing');
+			
 			function sanitize_billing_phone_number($input) {
     			$phone_number = $input;
     			if (substr($phone_number, 0, 3) === '+98') {
@@ -281,7 +292,7 @@ if( class_exists('WC_Payment_Gateway') && !class_exists('WC_zify') ){
 						update_post_meta($order_id, '_zify_orderCode', $order_code );
 						$Note = 'ساخت موفق پرداخت، کد پرداخت: '.$order_code;
 						$order->add_order_note($Note, 1, false);
-						wp_redirect(sprintf('%s/order/accept/%s', 'https://zify.ir', $order_code));
+						wp_redirect(sprintf('%s/order/accept/%s', 'https://zify.payping.dev', $order_code));
 						exit;
 					} else {
 						$Message = ' تراکنش ناموفق بود : ';
@@ -324,6 +335,10 @@ if( class_exists('WC_Payment_Gateway') && !class_exists('WC_zify') ){
 			
 			
 			if( isset( $order_id ) ){
+				/*if( $refid != null && $refid > 1000 ){
+					update_post_meta($order_id, 'woo_zify_refid', $refid );
+				}*/
+
 				// Get Order id
 				$order = new WC_Order($order_id);
 				// Get Currency Order
@@ -375,7 +390,7 @@ if( class_exists('WC_Payment_Gateway') && !class_exists('WC_zify') ){
 				}else{
 					$code = wp_remote_retrieve_response_code( $response );
 					
-					if ( $code === 200 && $body['data']['amount] == $Amount) {
+					if ( $code === 200 && $body['data']['amount'] == $Amount) {
 						$Status = 'success';
 						$card_number = '-';
 						if ( isset($card_number)) {
