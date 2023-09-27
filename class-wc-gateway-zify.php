@@ -192,6 +192,8 @@ if( class_exists('WC_Payment_Gateway') && !class_exists('WC_zify') ){
 				$payerIdentity = $Email;
 			
 			$billing_address = $order->get_address('billing');
+			$shipping_total = $this->zify_check_currency( $order->get_shipping_total(), $currency );
+			$shipping_tax = $this->zify_check_currency( $order->get_shipping_tax(), $currency );
 			
 			function sanitize_billing_phone_number($input) {
     			$phone_number = $input;
@@ -259,7 +261,9 @@ if( class_exists('WC_Payment_Gateway') && !class_exists('WC_zify') ){
 				'payer'       => $payer,
 				'products'    => $order_products,
 				'returnUrl'   => $CallbackUrl,
-				'clientRefId' => $order_id
+				'clientRefId' => $order_id,
+				"shipping_total" => $shipping_total,
+				"shipping_tax" => $shipping_total,
 			);
 			$args = array(
 				'body' => json_encode($data),
