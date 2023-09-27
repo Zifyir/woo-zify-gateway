@@ -18,9 +18,6 @@ if( class_exists('WC_Payment_Gateway') && !class_exists('WC_zify') ){
 			$this->has_fields = false;
 			$this->init_form_fields();
 			$this->init_settings();
-
-			//$checkserver = $this->settings['ioserver'];
-			//if( $checkserver == 'yes')$this->baseurl  = 'https://api.payping.io/v2';
 			
 			$this->title = $this->settings['title'];
 			$this->description = $this->settings['description'];
@@ -59,14 +56,6 @@ if( class_exists('WC_Payment_Gateway') && !class_exists('WC_zify') ){
 						'default' => 'yes',
 						'desc_tip' => true,
 					),
-					/*'ioserver' => array(
-						'title' => __('سرور خارج', 'woocommerce'),
-						'type' => 'checkbox',
-						'label' => __('اتصال به سرور خارج', 'woocommerce'),
-						'description' => __('در صورت تیک خوردن، درگاه به سرور خارج از کشور متصل می‌شود.', 'woocommerce'),
-						'default' => 'no',
-						'desc_tip' => true,
-					), */
 					'title' => array(
 						'title' => __('عنوان درگاه', 'woocommerce'),
 						'type' => 'text',
@@ -229,10 +218,12 @@ if( class_exists('WC_Payment_Gateway') && !class_exists('WC_zify') ){
 				return $phone_number;
 			}
 			$payer = array(
-				'state' => $billing_address['state'],
-				'city' => $billing_address['city'],
-				'address_1' => $billing_address['address_1'],
-				'address_2' => $billing_address['address_2']
+				'first_name' => $billing_address['first_name'],
+				'last_name'  => $billing_address['last_name'],
+				'state'      => $billing_address['state'],
+				'city'       => $billing_address['city'],
+				'address_1'  => $billing_address['address_1'],
+				'address_2'  => $billing_address['address_2']
 			);
 			$phone_number = sanitize_billing_phone_number($billing_address['phone']);
 			if($phone_number){
@@ -339,9 +330,6 @@ if( class_exists('WC_Payment_Gateway') && !class_exists('WC_zify') ){
 			
 			
 			if( isset( $order_id ) ){
-				/*if( $refid != null && $refid > 1000 ){
-					update_post_meta($order_id, 'woo_zify_refid', $refid );
-				}*/
 
 				// Get Order id
 				$order = new WC_Order($order_id);
