@@ -182,48 +182,54 @@ if( class_exists('WC_Payment_Gateway') && !class_exists('WC_zify') ){
 				$payerIdentity = $Email;
 			
 			$billing_address = $order->get_address('billing');
-			function sanitize_billing_phone_number($input, $billing_address) {
+			function sanitize_billing_phone_number($input) {
     			$phone_number = $input;
     			if (substr($phone_number, 0, 3) === '+98') {
 					if (substr($phone_number, 0, 4) === '+989') {
 						$phone_number = '0' . substr($phone_number, 3);
 					} else {
-						$phone_number = $billing_address['email'];
+						$phone_number = null;
 					}
 				} else if (substr($phone_number, 0, 2) === '98') {
 					if (substr($phone_number, 0, 3) === '989') {
 						$phone_number = '0' . substr($phone_number, 2);
 					} else {
-						$phone_number = $billing_address['email'];
+						$phone_number = null;
 					}
 				} else if (substr($phone_number, 0, 4) === '0098') {
 					if (substr($phone_number, 0, 5) === '00989'){
 						$phone_number = '0' . substr($phone_number, 4);
 					} else {
-						$phone_number = $billing_address['email'];
+						$phone_number = null;
 					}
 				} else {
 					if (substr($phone_number, 0, 1) === '0' && substr($phone_number, 1, 1) !== '9'){
-						$phone_number = $billing_address['email'];
+						$phone_number = null;
 					} else if (substr($phone_number, 0, 1) !== '0' && substr($phone_number, 0, 1) === '9') {
 						$phone_number = '0' . $phone_number;
 					} else if (substr($phone_number, 0, 1) !== '0' && substr($phone_number, 0, 1) !== '9') {
-						$phone_number = $billing_address['email'];
+						$phone_number = null;
 					} else if (substr($phone_number, 0, 1) === '0' && substr($phone_number, 1, 1) === '9') {
 						$phone_number = $input;
 					}
 				}
 				return $phone_number;
 			}
-			$billing_address['phone'] = sanitize_billing_phone_number($billing_address['phone'], $billing_address);
 			$payer = array(
-				'phone' => $billing_address['phone'],
-				'email' => $billing_address['email'],
 				'state' => $billing_address['state'],
 				'city' => $billing_address['city'],
 				'address_1' => $billing_address['address_1'],
 				'address_2' => $billing_address['address_2']
 			);
+			$phone_number = sanitize_billing_phone_number($billing_address['phone']);
+			if($phone_number){
+				$payer['phone'] = $phone_number;
+			}elseif($phone_number == false && isset($billing_address['email'])){
+				$payer['email'] = $billing_address['email'];
+			}else{
+				$payer['phone'] = null;
+				$payer['email'] = null;
+			}
 			$order_products = array();
 			
 			foreach ((array)$order_items as $product) {
