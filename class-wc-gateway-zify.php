@@ -263,7 +263,7 @@ if( class_exists('WC_Payment_Gateway') && !class_exists('WC_zify') ){
 				'returnUrl'   => $CallbackUrl,
 				'clientRefId' => $order_id,
 				"shipping_total" => $shipping_total,
-				"shipping_tax" => $shipping_total,
+				"shipping_tax" => $shipping_tax,
 			);
 			$args = array(
 				'body' => json_encode($data),
