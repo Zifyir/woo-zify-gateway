@@ -375,7 +375,7 @@ if( class_exists('WC_Payment_Gateway') && !class_exists('WC_zify') ){
 				}else{
 					$code = wp_remote_retrieve_response_code( $response );
 					
-					if ( $code === 200 && isset($body['data'])) {
+					if ( $code === 200 && $body['data']['amount] == $Amount) {
 						$Status = 'success';
 						$card_number = '-';
 						if ( isset($card_number)) {
