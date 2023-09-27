@@ -255,6 +255,7 @@ if( class_exists('WC_Payment_Gateway') && !class_exists('WC_zify') ){
 				'clientRefId' => $order_id,
 				"shipping_total" => $shipping_total,
 				"shipping_tax" => $shipping_tax,
+				"description"  => $Description
 			);
 			$args = array(
 				'body' => json_encode($data),
