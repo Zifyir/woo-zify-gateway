@@ -288,7 +288,7 @@ if( class_exists('WC_Payment_Gateway') && !class_exists('WC_zify') ){
 						update_post_meta($order_id, '_zify_orderCode', $order_code );
 						$Note = 'ساخت موفق پرداخت، کد پرداخت: '.$order_code;
 						$order->add_order_note($Note, 1, false);
-						wp_redirect(sprintf('%s/order/accept/%s', 'https://zify.payping.dev', $order_code));
+						wp_redirect(sprintf('%s/order/accept/%s', 'https://zify.ir/', $order_code));
 						exit;
 					} else {
 						$Message = ' تراکنش ناموفق بود : ';
