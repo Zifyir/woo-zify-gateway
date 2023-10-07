@@ -142,81 +142,34 @@ if( class_exists('WC_Payment_Gateway') && !class_exists('WC_zify') ){
 			echo $form;
 			do_action('WC_zify_Gateway_After_Form', $order_id, $woocommerce);
 
-			$Amount = intval( $order->get_total() );
-
-			$Amount = apply_filters('woocommerce_order_amount_total_IRANIAN_gateways_before_check_currency', $Amount, $currency);
-			$Amount = $this->zify_check_currency( $Amount, $currency );
-
-			$Amount = apply_filters('woocommerce_order_amount_total_IRANIAN_gateways_after_check_currency', $Amount, $currency);
-			$Amount = apply_filters('woocommerce_order_amount_total_IRANIAN_gateways_irt', $Amount, $currency);
-			$Amount = apply_filters('woocommerce_order_amount_total_zify_gateway', $Amount, $currency);
-
 			$CallbackUrl = add_query_arg('wc_order', $order_id, WC()->api_request_url('WC_zify'));
 
 			$products = array();
 			$order_items = $order->get_items();
 			foreach ((array)$order_items as $product) {
-				$products[] = $product['name'] . ' (' . $product['qty'] . ') ';
+				$products[] = $product['name'].'('.$product['qty'].')';
 			}
 			$products = implode(' - ', $products);
 
 			$Description = 'خرید به شماره سفارش : ' . $order->get_order_number() . ' | خریدار : ' . $order->get_billing_first_name() . ' ' . $order->get_billing_last_name() . ' | محصولات : ' . $products;
-			$Mobile = get_post_meta($order_id, '_billing_phone', true) ? get_post_meta($order_id, '_billing_phone', true) : '-';
-			$Email = $order->get_billing_email();
-			$Paymenter = $order->get_billing_first_name() . ' ' . $order->get_billing_last_name();
-			$ResNumber = intval($order->get_order_number());
-
-			//Hooks for iranian developer
-			$Description = apply_filters('WC_zify_Description', $Description, $order_id);
-			$Mobile = apply_filters('WC_zify_Mobile', $Mobile, $order_id);
-			$Email = apply_filters('WC_zify_Email', $Email, $order_id);
-			$Paymenter = apply_filters('WC_zify_Paymenter', $Paymenter, $order_id);
-			$ResNumber = apply_filters('WC_zify_ResNumber', $ResNumber, $order_id);
-			do_action('WC_zify_Gateway_Payment', $order_id, $Description, $Mobile);
-			$Email = !filter_var($Email, FILTER_VALIDATE_EMAIL) === false ? $Email : '';
-			$Mobile = preg_match('/^09[0-9]{9}/i', $Mobile) ? $Mobile : '';
-			if ( $Email == '' )
-				$payerIdentity = $Mobile;
-			else
-				$payerIdentity = $Email;
 			
 			$billing_address = $order->get_address('billing');
-			$shipping_total = $this->zify_check_currency( $order->get_shipping_total(), $currency );
-			$shipping_tax = $this->zify_check_currency( $order->get_shipping_tax(), $currency );
 			
-			function sanitize_billing_phone_number($input) {
-    			$phone_number = $input;
-    			if (substr($phone_number, 0, 3) === '+98') {
-					if (substr($phone_number, 0, 4) === '+989') {
-						$phone_number = '0' . substr($phone_number, 3);
-					} else {
-						$phone_number = null;
-					}
-				} else if (substr($phone_number, 0, 2) === '98') {
-					if (substr($phone_number, 0, 3) === '989') {
-						$phone_number = '0' . substr($phone_number, 2);
-					} else {
-						$phone_number = null;
-					}
-				} else if (substr($phone_number, 0, 4) === '0098') {
-					if (substr($phone_number, 0, 5) === '00989'){
-						$phone_number = '0' . substr($phone_number, 4);
-					} else {
-						$phone_number = null;
-					}
-				} else {
-					if (substr($phone_number, 0, 1) === '0' && substr($phone_number, 1, 1) !== '9'){
-						$phone_number = null;
-					} else if (substr($phone_number, 0, 1) !== '0' && substr($phone_number, 0, 1) === '9') {
-						$phone_number = '0' . $phone_number;
-					} else if (substr($phone_number, 0, 1) !== '0' && substr($phone_number, 0, 1) !== '9') {
-						$phone_number = null;
-					} else if (substr($phone_number, 0, 1) === '0' && substr($phone_number, 1, 1) === '9') {
-						$phone_number = $input;
-					}
-				}
-				return $phone_number;
-			}
+			// Shipping
+			$shipping_total  = $this->zify_check_currency( $order->get_shipping_total(), $currency );
+			$shipping_tax    = $this->zify_check_currency( $order->get_shipping_tax(), $currency );
+			
+			// Discount
+			$total_discount  = $this->zify_check_currency( $order->get_total_discount(), $currency );
+			$discount_tax    = $this->zify_check_currency( $order->get_discount_tax(), $currency );
+			
+			// Tax
+			$cart_tax        = $this->zify_check_currency( $order->get_cart_tax(), $currency );
+			$total_tax       = $this->zify_check_currency( $order->get_total_tax(), $currency );
+			
+			// Total
+			$amount          = $this->zify_check_currency( $order->get_total(), $currency );
+			
 			$payer = array(
 				'first_name' => $billing_address['first_name'],
 				'last_name'  => $billing_address['last_name'],
@@ -225,7 +178,9 @@ if( class_exists('WC_Payment_Gateway') && !class_exists('WC_zify') ){
 				'address_1'  => $billing_address['address_1'],
 				'address_2'  => $billing_address['address_2']
 			);
-			$phone_number = sanitize_billing_phone_number($billing_address['phone']);
+
+			$phone_number = $this->zify_check_mobile_payer($billing_address['phone']);
+
 			if($phone_number){
 				$payer['phone'] = $phone_number;
 			}elseif($phone_number == false && isset($billing_address['email'])){
@@ -249,14 +204,20 @@ if( class_exists('WC_Payment_Gateway') && !class_exists('WC_zify') ){
 			}
 			
 			$data = array(
-				'payer'       => $payer,
-				'products'    => $order_products,
-				'returnUrl'   => $CallbackUrl,
-				'clientRefId' => $order_id,
+				'payer'          => $payer,
+				'products'       => $order_products,
 				"shipping_total" => $shipping_total,
-				"shipping_tax" => $shipping_tax,
-				"description"  => $Description
+				"shipping_tax"   => $shipping_tax,
+				"off_total"      => $total_discount,
+				"off_tax"        => $discount_tax,
+				"cart_tax"       => $cart_tax,
+				"tax_total"      => $total_tax,
+				"total"          => $amount,
+				'returnUrl'      => $CallbackUrl,
+				'clientRefId'    => $order_id,
+				"description"    => $Description
 			);
+			
 			$args = array(
 				'body' => json_encode($data),
 				'timeout' => '45',
@@ -270,14 +231,11 @@ if( class_exists('WC_Payment_Gateway') && !class_exists('WC_zify') ){
 				  ),
 				'cookies' => array()
 			);
-
-			$api_url  = apply_filters( 'WC_zify_Gateway_Payment_api_url', $this->baseurl . '/order/v2/create', $order_id );
-
-			$api_args = apply_filters( 'WC_zify_Gateway_Payment_api_args', $args, $order_id );
-
-			$response = wp_remote_post($api_url, $api_args);
+			
+			$response = wp_remote_post($this->baseurl.'/order/v2/create', $args);
+			
 			$body = json_decode(wp_remote_retrieve_body($response), JSON_UNESCAPED_UNICODE);
-
+			
 			if( is_wp_error($response) ){
 				$Message = $response->get_error_message();
 			}else{	
@@ -306,7 +264,6 @@ if( class_exists('WC_Payment_Gateway') && !class_exists('WC_zify') ){
 				$Note = apply_filters('woo_zify_Send_to_Gateway_Failed_Note', $Note, $order_id, $Fault);
 				wc_add_notice($Fault, 'error');
 				$order->add_order_note($Note, 0, false);
-				do_action('woo_zify_Send_to_Gateway_Failed', $order_id, $Fault);
 			}
 		}
 
@@ -331,7 +288,6 @@ if( class_exists('WC_Payment_Gateway') && !class_exists('WC_zify') ){
 			
 			
 			if( isset( $order_id ) ){
-
 				// Get Order id
 				$order = new WC_Order($order_id);
 				// Get Currency Order
@@ -348,7 +304,7 @@ if( class_exists('WC_Payment_Gateway') && !class_exists('WC_zify') ){
 					$Amount = $this->zify_check_currency( $Amount, $currency );
 
 					// Add Filter for ANother Developer
-					//$refid = apply_filters('WC_zify_return_refid', $refid);
+					
 					$Transaction_ID = $refid;
 					$order_code = get_post_meta( $order_id, '_zify_orderCode', true );
 					//Set Data 
@@ -369,10 +325,8 @@ if( class_exists('WC_Payment_Gateway') && !class_exists('WC_zify') ){
 					 'cookies' => array()
 					);
 					
-				// Add Filter for use Another developer
-				$verify_api_url = apply_filters( 'WC_zify_Gateway_Payment_verify_api_url', $this->baseurl . '/order/v2/verify', $order_id );
 				//response
-				$response = wp_remote_post($verify_api_url, $args);
+				$response = wp_remote_post($this->baseurl.'/order/v2/verify', $args);
 				
 				$body = json_decode( wp_remote_retrieve_body( $response ), true );
 				
@@ -383,15 +337,15 @@ if( class_exists('WC_Payment_Gateway') && !class_exists('WC_zify') ){
 				}else{
 					$code = wp_remote_retrieve_response_code( $response );
 					
-					if ( $code === 200 && $body['data']['amount'] == $Amount) {
+					if( $code === 200 && $body['data']['amount'] == $Amount){
 						$Status = 'success';
 						$card_number = '-';
-						if ( isset($card_number)) {
+						if( isset($card_number)){
 							$card_number = $body['data']['card_number'];
 						}
 						$Message = 'پرداخت با موفقیت انجام شد. <br>شماره کارت: <b dir="ltr">'.$card_number.'</b>';
 						$Transaction_ID = $body['data']['refid'];
-					} else {
+					}else{
 						$Status = 'failed';
 						$Message = $body['message'];
 						$Fault = 'پرداخت ناموفق بود.';
@@ -405,7 +359,7 @@ if( class_exists('WC_Payment_Gateway') && !class_exists('WC_zify') ){
 							$Note = apply_filters('WC_zify_Return_from_Gateway_Success_Note', $Note, $order_id, $Transaction_ID );
 							$Notice = wpautop(wptexturize($this->success_massage));
 							$Notice = str_replace("{transaction_id}", $Transaction_ID, $Notice);
-							$Notice = apply_filters('WC_zify_Return_from_Gateway_Success_Notice', $Notice, $order_id, $Transaction_ID);
+							
 							do_action('WC_zify_Return_from_Gateway_Success', $order_id, $Transaction_ID, $response);
 							wc_add_notice($Message, 'error');
 							$order->add_order_note( $Message, 0, false);
@@ -420,7 +374,7 @@ if( class_exists('WC_Payment_Gateway') && !class_exists('WC_zify') ){
 							$Notice = wpautop(wptexturize($Note));
 							$Notice = str_replace("{transaction_id}", $Transaction_ID, $Notice);
 							$Notice = str_replace("{fault}", $Message, $Notice);
-							$Notice = apply_filters('WC_zify_Return_from_Gateway_Failed_Notice', $Notice, $order_id, $Transaction_ID, $Fault);
+							
 							do_action('WC_zify_Return_from_Gateway_Failed', $order_id, $Transaction_ID, $Fault);
 							wc_add_notice($Fault, 'error');
 							$order->add_order_note( $Notice, 0, false);
@@ -439,7 +393,7 @@ if( class_exists('WC_Payment_Gateway') && !class_exists('WC_zify') ){
 					$Transaction_ID = get_post_meta($order_id, '_transaction_id', true);
 					$Notice = wpautop(wptexturize($this->success_massage));
 					$Notice = str_replace("{transaction_id}", $Transaction_ID, $Notice);
-					$Notice = apply_filters('WC_zify_Return_from_Gateway_ReSuccess_Notice', $Notice, $order_id, $Transaction_ID);
+					
 					do_action('WC_zify_Return_from_Gateway_ReSuccess', $order_id, $Transaction_ID);
 					wc_add_notice($Fault, 'error');
 					$order->add_order_note( $Notice, 0, false);
@@ -450,10 +404,8 @@ if( class_exists('WC_Payment_Gateway') && !class_exists('WC_zify') ){
 				$Fault = __('شماره سفارش وجود ندارد .', 'woocommerce');
 				$Notice = wpautop(wptexturize($this->failed_massage));
 				$Notice = str_replace("{fault}", $Fault, $Notice);
-				$Notice = apply_filters('WC_zify_Return_from_Gateway_No_Order_ID_Notice', $Notice, $order_id, $Fault);
 				wc_add_notice($Fault, 'error');
 				$order->add_order_note( $Notice, 0, false);
-				do_action('WC_zify_Return_from_Gateway_No_Order_ID', $order_id, $Transaction_ID, $Fault);
 				wp_redirect(wc_get_checkout_url());
 				exit;
 			}
@@ -470,6 +422,40 @@ if( class_exists('WC_Payment_Gateway') && !class_exists('WC_zify') ){
 				$Amount = $Amount / 10;
 			}
 			return  $Amount;                      
+		}
+
+		function zify_check_mobile_payer($input){
+			$phone_number = $input;
+			if (substr($phone_number, 0, 3) === '+98') {
+				if (substr($phone_number, 0, 4) === '+989') {
+					$phone_number = '0' . substr($phone_number, 3);
+				} else {
+					$phone_number = null;
+				}
+			} else if (substr($phone_number, 0, 2) === '98') {
+				if (substr($phone_number, 0, 3) === '989') {
+					$phone_number = '0' . substr($phone_number, 2);
+				} else {
+					$phone_number = null;
+				}
+			} else if (substr($phone_number, 0, 4) === '0098') {
+				if (substr($phone_number, 0, 5) === '00989'){
+					$phone_number = '0' . substr($phone_number, 4);
+				} else {
+					$phone_number = null;
+				}
+			} else {
+				if (substr($phone_number, 0, 1) === '0' && substr($phone_number, 1, 1) !== '9'){
+					$phone_number = null;
+				} else if (substr($phone_number, 0, 1) !== '0' && substr($phone_number, 0, 1) === '9') {
+					$phone_number = '0' . $phone_number;
+				} else if (substr($phone_number, 0, 1) !== '0' && substr($phone_number, 0, 1) !== '9') {
+					$phone_number = null;
+				} else if (substr($phone_number, 0, 1) === '0' && substr($phone_number, 1, 1) === '9') {
+					$phone_number = $input;
+				}
+			}
+			return $phone_number;
 		}
 
 		public function status_message($code){
