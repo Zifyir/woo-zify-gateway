@@ -4,7 +4,7 @@ if(!defined('ABSPATH'))exit;
 if( class_exists('WC_Payment_Gateway') && !class_exists('WC_zify') ){
 	class WC_zify extends WC_Payment_Gateway{
 	    
-        private $baseurl = 'https://zify.ir/api';
+        private $baseurl = 'https://zify.ir';
         private $zifyToken;
         private $success_massage;
         private $failed_massage;
@@ -120,7 +120,7 @@ if( class_exists('WC_Payment_Gateway') && !class_exists('WC_zify') ){
 			
 			$zifypayCode = get_post_meta($order_id, '_zify_payCode', true);
 			if( $zifypayCode ){
-				wp_redirect( sprintf('%s/order/accept/%s', 'https://zify.ir/', $zifypayCode )) ;
+				wp_redirect( sprintf('%s/order/accept/%s', $this->baseurl, $zifypayCode )) ;
 				exit;
 			}
 			global $woocommerce;
@@ -232,7 +232,7 @@ if( class_exists('WC_Payment_Gateway') && !class_exists('WC_zify') ){
 				'cookies' => array()
 			);
 			
-			$response = wp_remote_post($this->baseurl.'/order/v2/create', $args);
+			$response = wp_remote_post($this->baseurl.'/api/order/v2/create', $args);
 			
 			$body = json_decode(wp_remote_retrieve_body($response), JSON_UNESCAPED_UNICODE);
 			
@@ -246,7 +246,7 @@ if( class_exists('WC_Payment_Gateway') && !class_exists('WC_zify') ){
 						update_post_meta($order_id, '_zify_orderCode', $order_code );
 						$Note = 'ساخت موفق پرداخت، کد پرداخت: '.$order_code;
 						$order->add_order_note($Note, 1, false);
-						wp_redirect(sprintf('%s/order/accept/%s', 'https://zify.ir/', $order_code));
+						wp_redirect(sprintf('%s/order/accept/%s', $this->baseurl, $order_code));
 						exit;
 					} else {
 						$Message = ' تراکنش ناموفق بود : ';
@@ -326,7 +326,7 @@ if( class_exists('WC_Payment_Gateway') && !class_exists('WC_zify') ){
 					);
 					
 				//response
-				$response = wp_remote_post($this->baseurl.'/order/v2/verify', $args);
+				$response = wp_remote_post($this->baseurl.'/api/order/v2/verify', $args);
 				
 				$body = json_decode( wp_remote_retrieve_body( $response ), true );
 				
