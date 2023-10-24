@@ -192,15 +192,37 @@ if( class_exists('WC_Payment_Gateway') && !class_exists('WC_zify') ){
 			$order_products = array();
 			
 			foreach ((array)$order_items as $product) {
-			    $price = ($product['subtotal'] / $product['quantity']);
-				$order_products[] = array(
-					'code'   => $product['product_id'],
-					'title'  => $product['name'],
-					'amount' =>  $this->zify_check_currency( $price, $currency ),
-					'sellQuantity' => $product['quantity'],
-					'description' => $product['description'],
-					'unlimited' => true
-				);
+    			$product_id = $product['product_id'];
+    			// Check if the product has variations
+    			if (wc_get_product($product_id)->is_type('variable')) {
+        			$variation_ids = $product['variation_id'];
+
+        			// If multiple variations exist for the product, loop through them
+        			if (is_array($variation_ids)) {
+            			foreach ($variation_ids as $variation_id) {
+                			$variation = wc_get_product($variation_id);
+                			if ($variation && $variation->get_parent_id() === $product_id) {
+                    			$code = $variation_id;
+                    			break; // Stop the loop after finding the selected variation
+                			}
+            			}
+        			} else {
+            			// Only one variation exists for the product
+            			$code = $variation_ids;
+        			}
+    			} else {
+        			// No variations, use the product ID
+        			$code = $product_id;
+    			}
+    			$price = ($product['subtotal'] / $product['quantity']);
+    			$order_products[] = array(
+        			'code'          => $code,
+        			'title'         => $product['name'],
+        			'amount'        => $this->zify_check_currency($price, $currency),
+        			'sellQuantity'  => $product['quantity'],
+        			'description'   => $product['description'],
+        			'unlimited'     => true
+    			);
 			}
 			
 			$data = array(
