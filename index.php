@@ -1,7 +1,7 @@
 <?php
 /*
 Plugin Name: Gateway for Zify on WooCommerce
-Version: 0.0.1
+Version: 0.0.2
 Description:  افزونه درگاه پرداخت زیفای برای ووکامرس
 Plugin URI: https://www.zify.ir/
 Author: Mahdi Sarani
