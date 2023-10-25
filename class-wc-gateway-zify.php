@@ -189,7 +189,8 @@ if( class_exists('WC_Payment_Gateway') && !class_exists('WC_zify') ){
 				$payer['phone'] = null;
 				$payer['email'] = null;
 			}
-			$order_products = array();
+			
+			$order_products = [];
 			
 			foreach ((array)$order_items as $product) {
     			$product_id = $product['product_id'];
