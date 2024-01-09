@@ -1,8 +1,8 @@
 <?php
 if(!defined('ABSPATH'))exit;
 
-if( class_exists('WC_Payment_Gateway') && !class_exists('WC_zify') ){
-	class WC_zify extends WC_Payment_Gateway{
+if( class_exists('WC_Payment_Gateway') && !class_exists('zify_woo') ){
+	class zify_woo extends WC_Payment_Gateway{
 	    
         private $baseurl = 'https://zify.ir';
         private $zifyToken;
@@ -11,7 +11,7 @@ if( class_exists('WC_Payment_Gateway') && !class_exists('WC_zify') ){
         
 		public function __construct(){
 		    
-			$this->id = 'WC_zify';
+			$this->id = 'zify_woo';
 			$this->method_title = __('پرداخت از طریق درگاه زیفای', 'woocommerce');
 			$this->method_description = __('تنظیمات درگاه پرداخت زیفای برای افزونه فروشگاه ساز ووکامرس', 'woocommerce');
 			$this->icon = apply_filters('woo_zify_logo', WOO_GZFDU.'/assets/images/logo.png');
@@ -42,7 +42,7 @@ if( class_exists('WC_Payment_Gateway') && !class_exists('WC_zify') ){
 		}
 
 		public function init_form_fields(){
-			$this->form_fields = apply_filters('WC_zify_Config', array(
+			$this->form_fields = apply_filters('zify_woo_Config', array(
 					'base_confing' => array(
 						'title' => __('تنظیمات پایه ای', 'woocommerce'),
 						'type' => 'title',
@@ -129,20 +129,19 @@ if( class_exists('WC_Payment_Gateway') && !class_exists('WC_zify') ){
 			$order = new WC_Order($order_id);
 			
 			$currency = $order->get_currency();
-			$currency = apply_filters('WC_zify_Currency', $currency, $order_id);
+			$currency = apply_filters('zify_woo_Currency', $currency, $order_id);
 			
 			$form = '<form action="" method="POST" class="zify-checkout-form" id="zify-checkout-form">
-					<input type="submit" name="zify_submit" class="button alt" id="zify-payment-button" value="' . __('پرداخت', 'woocommerce') . '"/>
-					<a class="button cancel" href="' . wc_get_checkout_url() . '">' . __('بازگشت', 'woocommerce') . '</a>
-				 </form><br/>';
+				 <input type="submit" name="zify_submit" class="button alt" id="zify-payment-button" value="' . esc_html(__('پرداخت', 'woocommerce')) . '"/>
+				 <a class="button cancel" href="' . esc_url(wc_get_checkout_url()) . '">' . esc_html(__('بازگشت', 'woocommerce')) . '</a>
+			 	</form><br/>';
+			$form = apply_filters('zify_woo_Form', $form, $order_id, $woocommerce);
 
-			$form = apply_filters('WC_zify_Form', $form, $order_id, $woocommerce);
-
-			do_action('WC_zify_Gateway_Before_Form', $order_id, $woocommerce);
+			do_action('zify_woo_Gateway_Before_Form', $order_id, $woocommerce);
 			echo $form;
-			do_action('WC_zify_Gateway_After_Form', $order_id, $woocommerce);
+			do_action('zify_woo_Gateway_After_Form', $order_id, $woocommerce);
 
-			$CallbackUrl = add_query_arg('wc_order', $order_id, WC()->api_request_url('WC_zify'));
+			$CallbackUrl = add_query_arg('wc_order', $order_id, WC()->api_request_url('zify_woo'));
 
 			$products = array();
 			$order_items = $order->get_items();
@@ -189,8 +188,7 @@ if( class_exists('WC_Payment_Gateway') && !class_exists('WC_zify') ){
 				$payer['phone'] = null;
 				$payer['email'] = null;
 			}
-			
-			$order_products = [];
+			$order_products = array();
 			
 			foreach ((array)$order_items as $product) {
     			$product_id = $product['product_id'];
@@ -307,7 +305,7 @@ if( class_exists('WC_Payment_Gateway') && !class_exists('WC_zify') ){
 				$refid = null;
 			}
 			
-			$order_id = apply_filters('WC_zify_return_order_id', $order_id);
+			$order_id = apply_filters('zify_woo_return_order_id', $order_id);
 			
 			
 			if( isset( $order_id ) ){
@@ -316,7 +314,7 @@ if( class_exists('WC_Payment_Gateway') && !class_exists('WC_zify') ){
 				// Get Currency Order
 				$currency = $order->get_currency();
 				// Add Filter For Another Developer
-				$currency = apply_filters('WC_zify_Currency', $currency, $order_id);
+				$currency = apply_filters('zify_woo_Currency', $currency, $order_id);
 				
 				if( $order->get_status() != 'completed' ){
 					// Get Amount
@@ -379,11 +377,11 @@ if( class_exists('WC_Payment_Gateway') && !class_exists('WC_zify') ){
 						update_post_meta($order_id, '_transaction_id', $Transaction_ID );
 						if( $Status == 'success' ){
 							$Note = sprintf( __('%s <br> شماره سفارش: %s <br>', 'woocommerce'), $Message, $Transaction_ID) ;
-							$Note = apply_filters('WC_zify_Return_from_Gateway_Success_Note', $Note, $order_id, $Transaction_ID );
+							$Note = apply_filters('zify_woo_Return_from_Gateway_Success_Note', $Note, $order_id, $Transaction_ID );
 							$Notice = wpautop(wptexturize($this->success_massage));
 							$Notice = str_replace("{transaction_id}", $Transaction_ID, $Notice);
 							
-							do_action('WC_zify_Return_from_Gateway_Success', $order_id, $Transaction_ID, $response);
+							do_action('zify_woo_Return_from_Gateway_Success', $order_id, $Transaction_ID, $response);
 							wc_add_notice($Message, 'error');
 							$order->add_order_note( $Message, 0, false);
 							$woocommerce->cart->empty_cart();
@@ -393,12 +391,12 @@ if( class_exists('WC_Payment_Gateway') && !class_exists('WC_zify') ){
 						}else{
 							$tr_id = ($Transaction_ID && $Transaction_ID != 0) ? ('<br/>کد پیگیری: ' . $Transaction_ID) : '';
 							$Note = sprintf(__('خطا در هنگام تایید پرداخت: %s', 'woocommerce'), $Message, $tr_id);
-							$Note = apply_filters('WC_zify_Return_from_Gateway_Failed_Note', $Note, $order_id, $Transaction_ID, $Fault);
+							$Note = apply_filters('zify_woo_Return_from_Gateway_Failed_Note', $Note, $order_id, $Transaction_ID, $Fault);
 							$Notice = wpautop(wptexturize($Note));
 							$Notice = str_replace("{transaction_id}", $Transaction_ID, $Notice);
 							$Notice = str_replace("{fault}", $Message, $Notice);
 							
-							do_action('WC_zify_Return_from_Gateway_Failed', $order_id, $Transaction_ID, $Fault);
+							do_action('zify_woo_Return_from_Gateway_Failed', $order_id, $Transaction_ID, $Fault);
 							wc_add_notice($Fault, 'error');
 							$order->add_order_note( $Notice, 0, false);
 							wp_redirect(wc_get_checkout_url());
@@ -417,7 +415,7 @@ if( class_exists('WC_Payment_Gateway') && !class_exists('WC_zify') ){
 					$Notice = wpautop(wptexturize($this->success_massage));
 					$Notice = str_replace("{transaction_id}", $Transaction_ID, $Notice);
 					
-					do_action('WC_zify_Return_from_Gateway_ReSuccess', $order_id, $Transaction_ID);
+					do_action('zify_woo_Return_from_Gateway_ReSuccess', $order_id, $Transaction_ID);
 					wc_add_notice($Fault, 'error');
 					$order->add_order_note( $Notice, 0, false);
 					wp_redirect(add_query_arg('wc_status', 'success', $this->get_return_url($order)));
