@@ -1,8 +1,8 @@
 <?php
 if(!defined('ABSPATH'))exit;
 
-if( class_exists('WC_Payment_Gateway') && !class_exists('zify_woo') ){
-	class zify_woo extends WC_Payment_Gateway{
+if( class_exists('WC_Payment_Gateway') && !class_exists('zifyWoo') ){
+	class zifyWoo extends WC_Payment_Gateway{
 	    
         private $baseurl = 'https://zify.ir';
         private $zifyToken;
@@ -14,7 +14,7 @@ if( class_exists('WC_Payment_Gateway') && !class_exists('zify_woo') ){
 			$this->id = 'zify_woo';
 			$this->method_title = __('پرداخت از طریق درگاه زیفای', 'woocommerce');
 			$this->method_description = __('تنظیمات درگاه پرداخت زیفای برای افزونه فروشگاه ساز ووکامرس', 'woocommerce');
-			$this->icon = apply_filters('woo_zify_logo', WOO_GZFDU.'/assets/images/logo.png');
+			$this->icon = apply_filters('woo_zify_logo', GZFDU.'/assets/images/logo.png');
 			$this->has_fields = false;
 			$this->init_form_fields();
 			$this->init_settings();
@@ -138,7 +138,27 @@ if( class_exists('WC_Payment_Gateway') && !class_exists('zify_woo') ){
 			$form = apply_filters('zify_woo_Form', $form, $order_id, $woocommerce);
 
 			do_action('zify_woo_Gateway_Before_Form', $order_id, $woocommerce);
-			echo $form;
+			echo wp_kses($form, array(
+				'form' => array(
+					'action' => array(),
+					'method' => array(),
+					'class' => array(),
+					'id' => array(),
+				),
+				'input' => array(
+					'type' => array(),
+					'name' => array(),
+					'class' => array(),
+					'id' => array(),
+					'value' => array(),
+				),
+				'a' => array(
+					'class' => array(),
+					'href' => array(),
+				),
+				'br' => array(),
+			));
+			//echo $form;
 			do_action('zify_woo_Gateway_After_Form', $order_id, $woocommerce);
 
 			$CallbackUrl = add_query_arg('wc_order', $order_id, WC()->api_request_url('zify_woo'));
