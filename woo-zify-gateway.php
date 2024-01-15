@@ -18,7 +18,7 @@ function load_zify_woo_gateway(){
 	/* Add Zify Gateway Method */
 	add_filter('woocommerce_payment_gateways', 'zify_Active_Gateway');
 	function zify_Active_Gateway($methods){
-		$methods[] = 'WC_zify';
+		$methods[] = 'zify_woo';
 		return $methods;
 	}
 	/* Add Iranian Currencies Woocommerce */
