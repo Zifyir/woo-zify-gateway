@@ -11,7 +11,7 @@ if( class_exists('WC_Payment_Gateway') && !class_exists('zifyWoo') ){
         
 		public function __construct(){
 		    
-			$this->id = 'zify_woo';
+			$this->id = 'zifyWoo';
 			$this->method_title = __('پرداخت از طریق درگاه زیفای', 'woocommerce');
 			$this->method_description = __('تنظیمات درگاه پرداخت زیفای برای افزونه فروشگاه ساز ووکامرس', 'woocommerce');
 			$this->icon = apply_filters('woo_zify_logo', GZFDU.'/assets/images/logo.png');
@@ -161,7 +161,7 @@ if( class_exists('WC_Payment_Gateway') && !class_exists('zifyWoo') ){
 			//echo $form;
 			do_action('zify_woo_Gateway_After_Form', $order_id, $woocommerce);
 
-			$CallbackUrl = add_query_arg('wc_order', $order_id, WC()->api_request_url('zify_woo'));
+			$CallbackUrl = add_query_arg('wc_order', $order_id, WC()->api_request_url('zifyWoo'));
 
 			$products = array();
 			$order_items = $order->get_items();
@@ -391,6 +391,7 @@ if( class_exists('WC_Payment_Gateway') && !class_exists('zifyWoo') ){
 						$Message = $body['message'];
 						$Fault = 'پرداخت ناموفق بود.';
 					}
+					
 				}
 				
 					if( isset( $Transaction_ID ) && $Transaction_ID != 0){
